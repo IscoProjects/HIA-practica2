@@ -1,43 +1,26 @@
 from flask import Flask, request, jsonify
-import mlflow
 import mlflow.sklearn
-
-mlflow.set_tracking_uri("http://localhost:5000") # cambiar en función de su servidor  http://127.0.0.1:5050
-model = mlflow.sklearn.load_model("models:/sentimientos_texto_model/3") # cambiar en función de su modelo models:/sentimientos_texto_model/3
+import pandas as pd
 
 app = Flask(__name__)
 
-@app.route("/predecir", methods=["POST"])
-def predecir():
-    datos = request.get_json()
-    texto = datos.get("texto")
-    if not texto:
-        return jsonify({"error": "No se envió texto"})
+mlflow.set_tracking_uri(
+    "http://localhost:9090"
+)  # cambiar en función de su servidor  http://127.0.0.1:5050
+model = mlflow.sklearn.load_model(
+    "models:/LR Model Prediction/1"
+)  # cambiar en función de su modelo models:/sentimientos_texto_model/3
 
-    pred = model.predict([texto])[0]
 
-    if pred == 1: 
-        resultado = "positivo"
-    else:
-        resultado = "negativo"
+@app.route("/predict", methods=["GET"])
+def predict_get():
+    word_count = int(request.args.get("word_count", 0))
+    sum_value = int(request.args.get("sum", 0))
 
-    return jsonify({"texto": texto, "sentimiento": resultado})
-
-@app.route("/predecir/dos", methods=["GET"])
-def predecir_02():
-    texto = request.args.get("texto")
-    if not texto:
-        return jsonify({"error": "No enviaste texto"})
-
-    pred = model.predict([texto])[0]
-    
-    if pred == 1: 
-        resultado = "positivo"
-    else:
-        resultado = "negativo"
-
-    return jsonify({"texto": texto, "sentimiento": resultado})
+    df = pd.DataFrame([{"Word count": word_count, "Sum": sum_value}])
+    prediction = model.predict(df)
+    return jsonify({"predicted_shares": int(prediction[0])})
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5050)
+    app.run(port=5000)
